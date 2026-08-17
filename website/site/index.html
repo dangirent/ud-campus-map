@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>UD Campus Map</title>
+<link rel="preload" as="image" href="map.webp">
+<link rel="preload" as="fetch" href="buildings.json" crossorigin>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <span class="mark">UD Campus Map<small>University of Delaware</small></span>
+    </div>
+    <div class="search-wrap" id="searchWrap">
+      <input type="text" id="searchInput" placeholder="Search buildings by name or number..." autocomplete="off">
+      <button class="clear-btn" id="clearSearch">&times;</button>
+      <div class="results" id="results"></div>
+    </div>
+    <div class="zoomgroup">
+      <button id="zoomOut" title="Zoom out">&minus;</button>
+      <span class="pct" id="zoomPct">100%</span>
+      <button id="zoomIn" title="Zoom in">+</button>
+    </div>
+    <button class="toolbtn" id="resetBtn">Reset zoom</button>
+    <button class="toolbtn" id="directionsBtn">Directions</button>
+    <button class="toolbtn" id="legendBtn">Legend</button>
+  </header>
+
+  <div class="body">
+    <div class="viewport" id="viewport">
+      <svg id="world" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 6682 10418" width="6682" height="10418">
+        <image id="mapImage" href="map.webp" x="0" y="0" width="6682" height="10418" onload="window.__mapImgLoaded=true;"></image>
+        <path id="routePath" class="route-line" d="" style="display:none"></path>
+        <g id="markers"></g>
+        <g id="stopBadges"></g>
+      </svg>
+      <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading campus map&hellip;</div>
+      </div>
+    </div>
+
+    <div class="info-card" id="infoCard">
+      <button class="close" id="infoClose">&times;</button>
+      <div class="num" id="infoNum"></div>
+      <h3 id="infoName"></h3>
+      <div class="cat" id="infoCat"></div>
+      <div class="actions">
+        <button class="act start" id="addStopBtn">Add to route</button>
+      </div>
+    </div>
+
+    <div class="directions-panel" id="directionsPanel">
+      <h3>Walking directions <button id="dpClose">&times;</button></h3>
+      <div id="dpStopsList"></div>
+      <div class="dp-result" id="dpResult"></div>
+      <div class="dp-hint">Straight-line distance shown as the crow flies. Actual walking distance along paths and sidewalks will be a bit longer.</div>
+      <button class="dp-clear" id="dpClear">Clear all stops</button>
+    </div>
+
+    <div class="edit-bar" id="editBar">
+      <span id="editBarText">Edit mode &mdash; drag any building marker or pin to move it.</span>
+      <button id="downloadCorrections" disabled>Download corrected data</button>
+      <button class="close-x" id="editBarClose" title="Exit edit mode">&times;</button>
+    </div>
+
+    <div class="legend closed" id="legendPanel">
+      <h2>Campus Map</h2>
+      <p class="sub">University of Delaware &middot; Office of Undergraduate Admissions</p>
+
+      <div class="legend-section">
+        <h3>Buildings <span class="count-badge" id="visibleCount"></span></h3>
+        <div class="legend-row toggleable" id="toggleAll">
+          <span class="swatch sw-building">174</span>
+          <span>Academic &amp; other buildings</span>
+          <span class="toggle-check checked" id="checkAll"></span>
+        </div>
+        <div class="legend-row toggleable" id="toggleResidence">
+          <span class="swatch sw-residence">16</span>
+          <span>Residence halls</span>
+          <span class="toggle-check checked" id="checkResidence"></span>
+        </div>
+      </div>
+
+      <div class="legend-section">
+        <h3>Map key</h3>
+        <div class="legend-row"><span class="swatch sw-admissions">A</span><span>Undergraduate Admissions Office</span></div>
+        <div class="legend-row"><span class="swatch sw-parking">P</span><span>Visitor parking (pay to park)</span></div>
+        <div class="legend-row"><span class="swatch sw-parking2">P</span><span>Newark municipal parking</span></div>
+        <div class="legend-row"><span class="swatch sw-dining">&#127860;</span><span>Dining facilities</span></div>
+        <div class="legend-row"><span class="swatch sw-dining">&#128214;</span><span>Bookstores</span></div>
+        <div class="legend-row"><span class="swatch sw-dining">&#128702;</span><span>Restrooms</span></div>
+        <p class="legend-note">These are shown as printed on the base map. Residence hall and building markers above are searchable and clickable; other map symbols are for reference.</p>
+      </div>
+
+      <div class="legend-section">
+        <h3>Using this map</h3>
+        <p class="legend-note">
+          Drag to pan, scroll or pinch to zoom, or use the search box to jump to a building.
+          Tap &ldquo;Directions&rdquo; in the toolbar, then click two buildings for a straight-line walking estimate.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <button class="toolbtn" id="footerToggle">Tools &#9662;</button>
+    <div class="footer-menu" id="footerMenu">
+      <button class="toolbtn" id="hideNumbersBtn">Hide numbers</button>
+      <button class="toolbtn" id="editModeBtn">Edit positions</button>
+    </div>
+  </footer>
+</div>
+
+
+<script src="app.js"></script>
+</body>
+</html>
