@@ -44,10 +44,16 @@
     </div>
 
     <div class="directions-panel" id="directionsPanel">
-      <h3>Walking directions <button id="dpClose">&times;</button></h3>
+      <h3>
+        <button class="dp-toggle" id="dpCollapse" aria-expanded="true" title="Collapse or expand the stop list">
+          <span class="tri">&#9656;</span>
+          <span class="dp-title">Walking directions</span>
+          <span class="dp-count" id="dpCount"></span>
+        </button>
+        <button class="dp-close-x" id="dpClose" title="Close">&times;</button>
+      </h3>
       <div id="dpStopsList"></div>
       <div class="dp-result" id="dpResult"></div>
-      <div class="dp-hint">Straight-line distance shown as the crow flies. Actual walking distance along paths and sidewalks will be a bit longer.</div>
       <button class="dp-share-btn" id="dpShareBtn">Share route</button>
       <div class="dp-share-box" id="dpShareBox">
         <div class="dp-share-label">Copy this link:</div>

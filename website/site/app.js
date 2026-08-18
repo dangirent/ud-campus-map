@@ -459,6 +459,10 @@ function toggleDirections(forceOn){
 }
 document.getElementById('directionsBtn').onclick = ()=>toggleDirections();
 document.getElementById('dpClose').onclick = ()=>toggleDirections(false);
+document.getElementById('dpCollapse').onclick = ()=>{
+  const collapsed = dPanel.classList.toggle('collapsed');
+  document.getElementById('dpCollapse').setAttribute('aria-expanded', String(!collapsed));
+};
 
 function formatDist(feet){
   return feet < 1000 ? Math.round(feet)+' ft' : (feet/5280).toFixed(2)+' mi';
@@ -495,6 +499,10 @@ function updateDirectionsUI(){
   clearTimeout(shareMsgTimer);
   document.getElementById('shareMsg').textContent = '';
 
+  // stop count in the collapsible header
+  document.getElementById('dpCount').textContent =
+    stops.length ? '· ' + stops.length + ' stop' + (stops.length===1?'':'s') : '';
+
   if (stops.length === 0){
     listEl.innerHTML = `<div class="dp-empty-hint">Click buildings on the map (or search) to add stops to your route.</div>`;
   } else {
@@ -508,16 +516,16 @@ function updateDirectionsUI(){
         leg = `<div class="stop-leg">${formatDist(feet)} to next stop</div>`;
       }
       return `<div class="dp-stop">
+        <div class="stop-actions">
+          <button class="reorder" data-act="up" data-n="${s.n}" ${isFirst?'disabled':''} title="Move up">&#9650;</button>
+          <button class="reorder" data-act="down" data-n="${s.n}" ${isLast?'disabled':''} title="Move down">&#9660;</button>
+        </div>
         <span class="dot ${dotClass}"></span>
         <div class="stop-info">
           <div class="stop-name">${i+1}. #${s.n} ${escapeHtml(s.name)}</div>
           ${leg}
         </div>
-        <div class="stop-actions">
-          <button class="reorder" data-act="up" data-n="${s.n}" ${isFirst?'disabled':''} title="Move up">&#8593;</button>
-          <button class="reorder" data-act="down" data-n="${s.n}" ${isLast?'disabled':''} title="Move down">&#8595;</button>
-        </div>
-        <button class="remove-btn" data-act="remove" data-n="${s.n}" title="Remove stop">&times;</button>
+        <button class="remove-btn" data-act="remove" data-n="${s.n}" title="Remove stop">&#10005;</button>
       </div>`;
     }).join('');
   }
