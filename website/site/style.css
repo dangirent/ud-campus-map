@@ -37,6 +37,13 @@
     box-shadow:0 -2px 8px rgba(0,0,0,.25);
     z-index:40;
     flex-wrap:wrap;
+    position:relative;
+  }
+  .app-version{
+    position:absolute;right:12px;top:50%;transform:translateY(-50%);
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:10px;letter-spacing:.4px;color:rgba(255,255,255,.8);
+    white-space:nowrap;pointer-events:none;
   }
   .footer-menu{
     display:none;

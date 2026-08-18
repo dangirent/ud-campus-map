@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 with open('map_base64.txt') as f:
     img_b64 = f.read().strip()
@@ -57,6 +58,13 @@ html = r"""<!DOCTYPE html>
     box-shadow:0 -2px 8px rgba(0,0,0,.25);
     z-index:40;
     flex-wrap:wrap;
+    position:relative;
+  }
+  .app-version{
+    position:absolute;right:12px;top:50%;transform:translateY(-50%);
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:10px;letter-spacing:.4px;color:rgba(255,255,255,.8);
+    white-space:nowrap;pointer-events:none;
   }
   .footer-menu{
     display:none;
@@ -445,6 +453,7 @@ html = r"""<!DOCTYPE html>
       <button class="toolbtn" id="hideNumbersBtn">Hide numbers</button>
       <button class="toolbtn" id="editModeBtn">Edit positions</button>
     </div>
+    <span class="app-version" id="appVersion">__VERSION__</span>
   </footer>
 </div>
 
@@ -1129,10 +1138,12 @@ loadRouteFromURL();
 </html>
 """
 
+version = datetime.now().strftime('v.%Y%m%d.%H%M')
 html = html.replace('__IMG_W__', str(IMG_W)).replace('__IMG_H__', str(IMG_H))
 html = html.replace('__FT_PER_PX__', str(FT_PER_PX))
 html = html.replace('__BUILDINGS_JSON__', buildings_json)
 html = html.replace('__IMG_B64__', img_b64)
+html = html.replace('__VERSION__', version)
 
 with open('index.html', 'w') as f:
     f.write(html)

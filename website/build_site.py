@@ -16,6 +16,7 @@ Writes into ./site/:
   map.webp
 """
 import json, os, shutil
+from datetime import datetime
 
 IMG_W, IMG_H = 6682, 10418
 FT_PER_PX = 1.31
@@ -45,8 +46,10 @@ with open(f'{OUT}/app.js', 'w') as f:
     f.write(js)
 
 # ---- index.html ----
+version = datetime.now().strftime('v.%Y%m%d.%H%M')
 body = open('site_body.html').read()
 body = body.replace('__IMG_W__', str(IMG_W)).replace('__IMG_H__', str(IMG_H))
+body = body.replace('__VERSION__', version)
 
 html = f"""<!DOCTYPE html>
 <html lang="en">
