@@ -153,6 +153,16 @@ not included in this package — see "What's not included").
   stops, auto-zoom to building-level on the first stop then re-fit to
   show the whole route as stops are added/removed, straight-line
   distance + walking-time estimate (per-leg and total)
+- **Collapsible directions panel** — the panel header is a toggle (a
+  triangle that points right when collapsed, down when expanded) showing
+  a live "· N stops" count next to "Walking directions"; collapsing
+  hides the stop list so the Share route / Clear all stops controls stay
+  reachable even on a long route
+- Per-stop row layout: horizontal up/down reorder controls (thick filled
+  triangles) sit to the *left* of the colored dot and name, so they read
+  distinctly from the thicker ✕ remove button on the right (the old
+  "straight-line distance…" hint paragraph below the list was removed as
+  redundant with the total shown in the results line)
 - Route stops render as colored map-pin icons (green start / amber via /
   crimson end) with the stop's sequence number in the pin's head
 - **Hide Numbers** — toggles both the number labels *and* the marker
@@ -163,6 +173,26 @@ not included in this package — see "What's not included").
   `buildings_final.json`, ready to feed back into the generator
 - **Collapsible footer menu** — Hide Numbers and Edit Positions live
   behind a "Tools" toggle in the footer, collapsed by default
+- **Footer version stamp** — a small white monospace label at the
+  footer's bottom-right (e.g. `v.20260818.1712`), format
+  `v.YYYYMMDD.HHMM`. It is injected at *build time* by each generator
+  (`datetime.now()` substituted into a `__VERSION__` placeholder), so it
+  records when that file was last regenerated, in the builder's local
+  timezone. It only changes on rebuild, never on page load — a quick way
+  to confirm a deployed/opened file is the version you expect
+- **Mobile button rendering** — the directions-panel buttons (Share
+  route, Copy, Clear, and the share-link input) carry
+  `-webkit-appearance:none; appearance:none;` so mobile Safari renders
+  their intended styling instead of its native button chrome
+- **Share route** — once a route has 1+ stops, "Share route" reveals a
+  URL with the stops encoded as a query param
+  (`?route=175,132,130`, building numbers in order); a separate "Copy"
+  button copies it to clipboard and confirms with a "Copied" message.
+  Opening a URL with that param auto-builds the same route: directions
+  panel opens, stops populate in order, pins/route line render, camera
+  fits to show the whole thing. Invalid or garbage route params fail
+  silently (no crash, just no route loaded); normal loads without the
+  param are completely unaffected.
 - Fully responsive; touch-tested (drag-pan, pinch-zoom, tap, drag-to-edit)
   at phone viewport with real synthetic pointer/touch events, not just
   CSS breakpoints
@@ -191,6 +221,23 @@ Also worth knowing: the edit-mode status bar (top-center pill) needed
 `pointer-events: none` on its own background, with `pointer-events: auto`
 restored only on its buttons — otherwise it silently blocks drag/click on
 any marker that happens to render underneath it.
+
+One more, on the Share route feature specifically: the first
+implementation had "Share route" *both* reveal the link *and* silently
+copy it to clipboard in the same click, which the user reasonably read
+as a bug ("Copied" appearing before they'd clicked anything resembling a
+copy action). The fix wasn't a bug patch, it was separating two actions
+that had been conflated: **"Share route" only reveals the link now
+(pre-selected in the field, nothing copied); only the explicit "Copy"
+button writes to the clipboard and shows "Copied."** If you touch this
+code, keep that separation — don't let revealing something and
+committing an action share one click handler again. Related: the share
+box/message also needed an explicit reset (hide box, clear message)
+every time the route changes at all — added inside `updateDirectionsUI()`
+since every stop mutation (add/remove/reorder/clear) already funnels
+through it — otherwise a stale "Copied" confirmation or an
+out-of-date link could linger after the route it referred to no longer
+existed.
 
 ---
 
@@ -245,7 +292,7 @@ over the other copy to keep both versions in sync.
 | File | What it is |
 |---|---|
 | `buildings.py` | Raw ground-truth list: number, name, printed grid reference — no coordinates |
-| `need_fallback.json` | The original 19 approximate-placement building numbers (2 still unresolved — see above) |
+| `need_fallback.json` | The original 19 approximate-placement building numbers — all now have real, user-verified positions (see methodology step 4) |
 | `residence_halls.json` | The 16 building numbers tagged as residence halls |
 
 ### What's not included
@@ -278,6 +325,12 @@ over the other copy to keep both versions in sync.
    this comes up.
 4. Consider unifying the two generators' CSS/JS into one shared source
    with two output modes, per the note in "How to regenerate."
+5. **Share route has no length guard on the URL itself** — `loadRouteFromURL`
+   caps parsing at 50 stops, but a route with many stops still produces a
+   long `?route=` query string. Not a practical problem at realistic
+   route sizes (a handful of stops), but if very long routes become
+   common, a shortened/hashed encoding would be more robust than raw
+   comma-separated numbers in the URL.
 
 ---
 
@@ -348,8 +401,67 @@ over the other copy to keep both versions in sync.
     website versions (including over a real local HTTP server for the
     latter), and updated this summary to reflect that all 19 originally
     flagged buildings now have real, user-verified positions
+19. Added Share Route: URL query param encoding, auto-copy to clipboard
+    with a confirmation, and loading a route from the URL on page load
+    (including handling the website version's async data-load race
+    correctly). Then, per user feedback across a few rounds, reworked the
+    share UI: moved "Copy this link:" above the field, added a distinct
+    "Copied" confirmation below it, hardened the Copy button onto one
+    shared code path with the auto-copy — then, once the user clarified
+    what they actually meant, separated "Share route" (reveal only) from
+    "Copy" (the only thing that copies) entirely, and fixed the share
+    box/message not resetting when the route changes. See the callout in
+    "Current feature set" above for the specifics
+20. Re-delivered the full current file set on request (both versions,
+    all files, not just deltas)
+21. Recreated/updated this summary document for a Claude Code handoff,
+    and confirmed both generators still produce correct, working output
+    directly from the package as delivered — not just from local
+    working files that may have drifted
 
 Each of these was verified with actual Playwright interaction tests
 (not just visual inspection) before being called done — worth
 continuing that habit, since several real bugs were only caught that
 way.
+
+## Follow-up session (Claude Code) — directions-panel polish + version stamp
+
+Picked up in Claude Code with the repo already on GitHub
+(`dangirent/ud-campus-map`), working on branch
+`claude/ud-campus-map-review-kk2bvp`. All changes below were applied
+identically to **both** generators and re-verified in headless Chromium
+at desktop (1280×800) and mobile (390×844) viewports.
+
+1. **Collapsible directions panel.** Turned the "Walking directions"
+   header into a toggle: a triangle (right = collapsed, down = expanded)
+   plus a live "· N stops" count. Collapsing hides only the stop list so
+   Share route / Clear all stops stay reachable when a route has many
+   stops (the original problem was those controls scrolling out of reach
+   below a long list).
+2. **Removed** the redundant "Straight-line distance…" hint paragraph
+   below the stop list (the total line already says "straight-line").
+3. **Reorder controls reworked** (#5/#6 in the request): up/down moved to
+   the *left* of the colored dot/name, laid out horizontally as thick
+   filled triangles (`▲ ▼`), visually distinct from a thicker `✕` remove
+   button on the right.
+4. **Mobile button fix.** Added `-webkit-appearance:none; appearance:none;`
+   to the Share/Copy/Clear buttons and the share input so mobile Safari
+   stops rendering them as native chrome (they were showing as plain grey
+   buttons on phones while looking correct on desktop).
+5. **Collapse triangle size** tuned across two rounds to 18px to match
+   the visual weight of the stop-list arrows.
+6. **Footer version stamp.** Added a small white monospace label at the
+   footer's bottom-right, format `v.YYYYMMDD.HHMM`, injected at build time
+   by each generator (`datetime.now()` → `__VERSION__` placeholder). It
+   reflects when the file was last regenerated, in the builder's local
+   timezone, and only updates on rebuild.
+
+Process note for whoever picks this up next: pushes in this session went
+through a **git bundle** handed to the user, because the Claude Code
+session's own git credentials were read-only for the repo (fetch worked,
+`git push` returned 403). The user applied each bundle and pushed from
+their own machine. If you hit the same wall, `git bundle create
+<file> <base>..<branch>` + deliver it is a reliable path. Also note the
+working repo lived inside OneDrive, which caused placeholder/locking
+snags on the bundle files — copying the bundle to `%TEMP%` before
+`git fetch` worked around it.
