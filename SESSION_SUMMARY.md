@@ -163,6 +163,15 @@ not included in this package — see "What's not included").
   `buildings_final.json`, ready to feed back into the generator
 - **Collapsible footer menu** — Hide Numbers and Edit Positions live
   behind a "Tools" toggle in the footer, collapsed by default
+- **Share route** — once a route has 1+ stops, "Share route" reveals a
+  URL with the stops encoded as a query param
+  (`?route=175,132,130`, building numbers in order); a separate "Copy"
+  button copies it to clipboard and confirms with a "Copied" message.
+  Opening a URL with that param auto-builds the same route: directions
+  panel opens, stops populate in order, pins/route line render, camera
+  fits to show the whole thing. Invalid or garbage route params fail
+  silently (no crash, just no route loaded); normal loads without the
+  param are completely unaffected.
 - Fully responsive; touch-tested (drag-pan, pinch-zoom, tap, drag-to-edit)
   at phone viewport with real synthetic pointer/touch events, not just
   CSS breakpoints
@@ -191,6 +200,23 @@ Also worth knowing: the edit-mode status bar (top-center pill) needed
 `pointer-events: none` on its own background, with `pointer-events: auto`
 restored only on its buttons — otherwise it silently blocks drag/click on
 any marker that happens to render underneath it.
+
+One more, on the Share route feature specifically: the first
+implementation had "Share route" *both* reveal the link *and* silently
+copy it to clipboard in the same click, which the user reasonably read
+as a bug ("Copied" appearing before they'd clicked anything resembling a
+copy action). The fix wasn't a bug patch, it was separating two actions
+that had been conflated: **"Share route" only reveals the link now
+(pre-selected in the field, nothing copied); only the explicit "Copy"
+button writes to the clipboard and shows "Copied."** If you touch this
+code, keep that separation — don't let revealing something and
+committing an action share one click handler again. Related: the share
+box/message also needed an explicit reset (hide box, clear message)
+every time the route changes at all — added inside `updateDirectionsUI()`
+since every stop mutation (add/remove/reorder/clear) already funnels
+through it — otherwise a stale "Copied" confirmation or an
+out-of-date link could linger after the route it referred to no longer
+existed.
 
 ---
 
@@ -245,7 +271,7 @@ over the other copy to keep both versions in sync.
 | File | What it is |
 |---|---|
 | `buildings.py` | Raw ground-truth list: number, name, printed grid reference — no coordinates |
-| `need_fallback.json` | The original 19 approximate-placement building numbers (2 still unresolved — see above) |
+| `need_fallback.json` | The original 19 approximate-placement building numbers — all now have real, user-verified positions (see methodology step 4) |
 | `residence_halls.json` | The 16 building numbers tagged as residence halls |
 
 ### What's not included
@@ -278,6 +304,12 @@ over the other copy to keep both versions in sync.
    this comes up.
 4. Consider unifying the two generators' CSS/JS into one shared source
    with two output modes, per the note in "How to regenerate."
+5. **Share route has no length guard on the URL itself** — `loadRouteFromURL`
+   caps parsing at 50 stops, but a route with many stops still produces a
+   long `?route=` query string. Not a practical problem at realistic
+   route sizes (a handful of stops), but if very long routes become
+   common, a shortened/hashed encoding would be more robust than raw
+   comma-separated numbers in the URL.
 
 ---
 
@@ -348,6 +380,23 @@ over the other copy to keep both versions in sync.
     website versions (including over a real local HTTP server for the
     latter), and updated this summary to reflect that all 19 originally
     flagged buildings now have real, user-verified positions
+19. Added Share Route: URL query param encoding, auto-copy to clipboard
+    with a confirmation, and loading a route from the URL on page load
+    (including handling the website version's async data-load race
+    correctly). Then, per user feedback across a few rounds, reworked the
+    share UI: moved "Copy this link:" above the field, added a distinct
+    "Copied" confirmation below it, hardened the Copy button onto one
+    shared code path with the auto-copy — then, once the user clarified
+    what they actually meant, separated "Share route" (reveal only) from
+    "Copy" (the only thing that copies) entirely, and fixed the share
+    box/message not resetting when the route changes. See the callout in
+    "Current feature set" above for the specifics
+20. Re-delivered the full current file set on request (both versions,
+    all files, not just deltas)
+21. Recreated/updated this summary document for a Claude Code handoff,
+    and confirmed both generators still produce correct, working output
+    directly from the package as delivered — not just from local
+    working files that may have drifted
 
 Each of these was verified with actual Playwright interaction tests
 (not just visual inspection) before being called done — worth

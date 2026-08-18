@@ -244,6 +244,28 @@ html = r"""<!DOCTYPE html>
   .dp-hint{font-size:11.5px;color:#8a8577;margin-top:8px;line-height:1.5;}
   .dp-clear{margin-top:10px;width:100%;padding:7px;border-radius:8px;border:1px solid #d8d4c4;background:#fff;color:#6f6a5c;font-size:12.5px;cursor:pointer;}
   .dp-clear:hover{background:#f0efe8;}
+  .dp-share-btn{
+    margin-top:10px;width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--navy);
+    background:#fff;color:var(--navy);font-size:12.5px;font-weight:600;cursor:pointer;
+  }
+  .dp-share-btn:hover{background:var(--navy);color:#fff;}
+  .dp-share-box{
+    display:none;margin-top:8px;padding:10px;border-radius:8px;background:#f7f6f1;
+    border:1px solid var(--line);
+  }
+  .dp-share-box.show{display:block;}
+  .dp-share-box .row{display:flex;gap:6px;align-items:center;}
+  .dp-share-label{font-size:11.5px;color:#6f6a5c;margin-bottom:6px;}
+  .dp-share-box input{
+    flex:1;min-width:0;font-size:11.5px;padding:6px 8px;border-radius:6px;
+    border:1px solid #d8d4c4;background:#fff;color:var(--ink);
+  }
+  .dp-share-box button.copy-btn{
+    flex-shrink:0;border:1px solid var(--navy);background:var(--navy);color:#fff;
+    border-radius:6px;padding:6px 10px;font-size:11.5px;cursor:pointer;
+  }
+  .dp-share-box button.copy-btn:hover{background:var(--navy-dark);}
+  .dp-share-msg{font-size:11px;color:#1f9e5c;font-weight:600;margin-top:6px;min-height:14px;}
 
   /* ---------- Edit mode ---------- */
   .edit-bar{
@@ -342,6 +364,15 @@ html = r"""<!DOCTYPE html>
       <div id="dpStopsList"></div>
       <div class="dp-result" id="dpResult"></div>
       <div class="dp-hint">Straight-line distance shown as the crow flies. Actual walking distance along paths and sidewalks will be a bit longer.</div>
+      <button class="dp-share-btn" id="dpShareBtn">Share route</button>
+      <div class="dp-share-box" id="dpShareBox">
+        <div class="dp-share-label">Copy this link:</div>
+        <div class="row">
+          <input type="text" id="shareUrlInput" readonly>
+          <button class="copy-btn" id="shareCopyBtn">Copy</button>
+        </div>
+        <div class="dp-share-msg" id="shareMsg"></div>
+      </div>
       <button class="dp-clear" id="dpClear">Clear all stops</button>
     </div>
 
@@ -891,6 +922,11 @@ function updateDirectionsUI(){
   const listEl = document.getElementById('dpStopsList');
   const resultEl = document.getElementById('dpResult');
 
+  // the route just changed, so any previously copied/shown share link is stale
+  document.getElementById('dpShareBox').classList.remove('show');
+  clearTimeout(shareMsgTimer);
+  document.getElementById('shareMsg').textContent = '';
+
   if (stops.length === 0){
     listEl.innerHTML = `<div class="dp-empty-hint">Click buildings on the map (or search) to add stops to your route.</div>`;
   } else {
@@ -977,11 +1013,91 @@ document.getElementById('dpClear').onclick = ()=>{
   stops = []; updateDirectionsUI();
 };
 
+// ---------- Share route ----------
+function buildShareUrl(){
+  const base = location.href.split('?')[0].split('#')[0];
+  return base + '?route=' + stops.map(s=>s.n).join(',');
+}
+
+let shareMsgTimer = null;
+function showCopiedMessage(success){
+  const msgEl = document.getElementById('shareMsg');
+  clearTimeout(shareMsgTimer);
+  if (success){
+    msgEl.textContent = 'Copied';
+    shareMsgTimer = setTimeout(()=>{ msgEl.textContent = ''; }, 2500);
+  } else {
+    msgEl.textContent = '';
+  }
+}
+
+function fallbackCopy(url){
+  const input = document.getElementById('shareUrlInput');
+  input.value = url;
+  input.focus();
+  input.select();
+  input.setSelectionRange(0, url.length);
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch(err) { ok = false; }
+  return ok;
+}
+
+function copyToClipboard(url){
+  const input = document.getElementById('shareUrlInput');
+  input.value = url;
+  input.focus();
+  input.select();
+  input.setSelectionRange(0, url.length);
+
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url)
+      .then(()=> showCopiedMessage(true))
+      .catch(()=> showCopiedMessage(fallbackCopy(url)));
+  } else {
+    showCopiedMessage(fallbackCopy(url));
+  }
+}
+
+function revealShareBox(url){
+  const input = document.getElementById('shareUrlInput');
+  input.value = url;
+  document.getElementById('dpShareBox').classList.add('show');
+  input.focus();
+  input.select();
+  input.setSelectionRange(0, url.length);
+}
+
+document.getElementById('dpShareBtn').onclick = ()=>{
+  if (stops.length === 0) return;
+  const url = buildShareUrl();
+  revealShareBox(url);
+};
+document.getElementById('shareCopyBtn').onclick = ()=>{
+  const url = document.getElementById('shareUrlInput').value || buildShareUrl();
+  copyToClipboard(url);
+};
+
+// ---------- Load a shared route from the URL, if present ----------
+function loadRouteFromURL(){
+  const params = new URLSearchParams(location.search);
+  const routeParam = params.get('route');
+  if (!routeParam) return false;
+  const nums = routeParam.split(',').map(s=>parseInt(s.trim(),10)).filter(n=>!isNaN(n)).slice(0,50);
+  const validStops = nums.map(n=>BUILDINGS.find(b=>b.n===n)).filter(Boolean);
+  if (validStops.length === 0) return false;
+  stops = validStops;
+  toggleDirections(true);
+  updateDirectionsUI();
+  fitStopsView();
+  return true;
+}
+
 // ---------- Init ----------
 window.addEventListener('resize', ()=>{ fitToScreen(); });
 fitToScreen();
 initialScaleRef = scale;
 document.getElementById('zoomPct').textContent = '100%';
+loadRouteFromURL();
 </script>
 </body>
 </html>

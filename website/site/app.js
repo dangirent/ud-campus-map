@@ -490,6 +490,11 @@ function updateDirectionsUI(){
   const listEl = document.getElementById('dpStopsList');
   const resultEl = document.getElementById('dpResult');
 
+  // the route just changed, so any previously copied/shown share link is stale
+  document.getElementById('dpShareBox').classList.remove('show');
+  clearTimeout(shareMsgTimer);
+  document.getElementById('shareMsg').textContent = '';
+
   if (stops.length === 0){
     listEl.innerHTML = `<div class="dp-empty-hint">Click buildings on the map (or search) to add stops to your route.</div>`;
   } else {
@@ -576,6 +581,85 @@ document.getElementById('dpClear').onclick = ()=>{
   stops = []; updateDirectionsUI();
 };
 
+// ---------- Share route ----------
+function buildShareUrl(){
+  const base = location.href.split('?')[0].split('#')[0];
+  return base + '?route=' + stops.map(s=>s.n).join(',');
+}
+
+let shareMsgTimer = null;
+function showCopiedMessage(success){
+  const msgEl = document.getElementById('shareMsg');
+  clearTimeout(shareMsgTimer);
+  if (success){
+    msgEl.textContent = 'Copied';
+    shareMsgTimer = setTimeout(()=>{ msgEl.textContent = ''; }, 2500);
+  } else {
+    msgEl.textContent = '';
+  }
+}
+
+function fallbackCopy(url){
+  const input = document.getElementById('shareUrlInput');
+  input.value = url;
+  input.focus();
+  input.select();
+  input.setSelectionRange(0, url.length);
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch(err) { ok = false; }
+  return ok;
+}
+
+function copyToClipboard(url){
+  const input = document.getElementById('shareUrlInput');
+  input.value = url;
+  input.focus();
+  input.select();
+  input.setSelectionRange(0, url.length);
+
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url)
+      .then(()=> showCopiedMessage(true))
+      .catch(()=> showCopiedMessage(fallbackCopy(url)));
+  } else {
+    showCopiedMessage(fallbackCopy(url));
+  }
+}
+
+function revealShareBox(url){
+  const input = document.getElementById('shareUrlInput');
+  input.value = url;
+  document.getElementById('dpShareBox').classList.add('show');
+  input.focus();
+  input.select();
+  input.setSelectionRange(0, url.length);
+}
+
+document.getElementById('dpShareBtn').onclick = ()=>{
+  if (stops.length === 0) return;
+  const url = buildShareUrl();
+  revealShareBox(url);
+};
+document.getElementById('shareCopyBtn').onclick = ()=>{
+  const url = document.getElementById('shareUrlInput').value || buildShareUrl();
+  copyToClipboard(url);
+};
+
+// ---------- Load a shared route from the URL, if present ----------
+function loadRouteFromURL(){
+  const params = new URLSearchParams(location.search);
+  const routeParam = params.get('route');
+  if (!routeParam) return false;
+  const nums = routeParam.split(',').map(s=>parseInt(s.trim(),10)).filter(n=>!isNaN(n)).slice(0,50);
+  const validStops = nums.map(n=>BUILDINGS.find(b=>b.n===n)).filter(Boolean);
+  if (validStops.length === 0) return false;
+  stops = validStops;
+  toggleDirections(true);
+  updateDirectionsUI();
+  fitStopsView();
+  return true;
+}
+
 // ---------- Init ----------
 window.addEventListener('resize', ()=>{ if (BUILDINGS.length) fitToScreen(); });
 
@@ -604,6 +688,7 @@ async function boot(){
   fitToScreen();
   initialScaleRef = scale;
   document.getElementById('zoomPct').textContent = '100%';
+  loadRouteFromURL();
   if (overlay) overlay.classList.add('hidden');
 }
 boot();

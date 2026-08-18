@@ -239,6 +239,28 @@
   .dp-hint{font-size:11.5px;color:#8a8577;margin-top:8px;line-height:1.5;}
   .dp-clear{margin-top:10px;width:100%;padding:7px;border-radius:8px;border:1px solid #d8d4c4;background:#fff;color:#6f6a5c;font-size:12.5px;cursor:pointer;}
   .dp-clear:hover{background:#f0efe8;}
+  .dp-share-btn{
+    margin-top:10px;width:100%;padding:8px;border-radius:8px;border:1.5px solid var(--navy);
+    background:#fff;color:var(--navy);font-size:12.5px;font-weight:600;cursor:pointer;
+  }
+  .dp-share-btn:hover{background:var(--navy);color:#fff;}
+  .dp-share-box{
+    display:none;margin-top:8px;padding:10px;border-radius:8px;background:#f7f6f1;
+    border:1px solid var(--line);
+  }
+  .dp-share-box.show{display:block;}
+  .dp-share-box .row{display:flex;gap:6px;align-items:center;}
+  .dp-share-label{font-size:11.5px;color:#6f6a5c;margin-bottom:6px;}
+  .dp-share-box input{
+    flex:1;min-width:0;font-size:11.5px;padding:6px 8px;border-radius:6px;
+    border:1px solid #d8d4c4;background:#fff;color:var(--ink);
+  }
+  .dp-share-box button.copy-btn{
+    flex-shrink:0;border:1px solid var(--navy);background:var(--navy);color:#fff;
+    border-radius:6px;padding:6px 10px;font-size:11.5px;cursor:pointer;
+  }
+  .dp-share-box button.copy-btn:hover{background:var(--navy-dark);}
+  .dp-share-msg{font-size:11px;color:#1f9e5c;font-weight:600;margin-top:6px;min-height:14px;}
 
   /* ---------- Edit mode ---------- */
   .edit-bar{
